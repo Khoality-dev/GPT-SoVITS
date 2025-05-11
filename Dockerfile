@@ -1,10 +1,9 @@
 # Base CUDA image
-FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04
+FROM cnstark/pytorch:2.0.1-py3.9.17-cuda11.8.0-ubuntu20.04 AS webui
 
 LABEL maintainer="breakstring@hotmail.com"
 LABEL version="dev-20240209"
 LABEL description="Docker image for GPT-SoVITS"
-
 
 # Install 3rd party apps
 ENV DEBIAN_FRONTEND=noninteractive
@@ -25,6 +24,7 @@ ARG IMAGE_TYPE=full
 # Conditional logic based on the IMAGE_TYPE argument
 # Always copy the Docker directory, but only use it if IMAGE_TYPE is not "elite"
 COPY ./Docker /workspace/Docker 
+RUN python -c "import nltk; nltk.download(['averaged_perceptron_tagger','averaged_perceptron_tagger_eng','cmudict'])"
 # elite 类型的镜像里面不包含额外的模型
 RUN if [ "$IMAGE_TYPE" != "elite" ]; then \
         chmod +x /workspace/Docker/download.sh && \
@@ -40,3 +40,7 @@ COPY . /workspace
 EXPOSE 9871 9872 9873 9874 9880
 
 CMD ["python", "webui.py"]
+
+
+FROM webui AS restapi
+CMD ["python", "api_v2.py", "-a", "0.0.0.0", "-p", "9880", "-c", "GPT_SoVITS/configs/tts_infer.yaml"]
